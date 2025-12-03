@@ -4,8 +4,6 @@ const { Pool } = pkg;
 
 dotenv.config()
 
-console.log("DB PASSWORD LOADED =", JSON.stringify(process.env.DB_PASSWORD));
-
 const pool = new Pool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
