@@ -1,10 +1,9 @@
 import express from "express";
 import dotenv from "dotenv";
 import { forwardRequest } from "../utils/serviceCaller.js";
+import { DEALER_SERVICE } from "../services/service.js";
 
-dotenv.config();
 const router = express.Router();
-const DEALER_SERVICE = process.env.DEALER_SERVICE_URL
 
 //Register
 router.post("/register",async (req,res)=>{

@@ -3,8 +3,8 @@ import app from "./app.js"
 
 dotenv.config();
 
-const PORT = process.env.PORT||5000;
+const PORT = process.env.PORT;
 
 app.listen(PORT,()=>{
-    console.log(`API gateway running on the ${PORT}`)
+    console.log(`Scooty Service running on port ${PORT}`)
 })
