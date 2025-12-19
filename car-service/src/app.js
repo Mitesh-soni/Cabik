@@ -8,6 +8,6 @@ app.use(cors());
 app.use(express.json());
 app.use(morgan("dev"));
 
-app.use("/bike", carRoutes);
+app.use("/cars", carRoutes);
 
 export default app;

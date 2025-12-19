@@ -16,7 +16,7 @@ app.use(express.json());//covert json into javascript object type
 app.use(morgan("div"));
 
 //Routes
-app.use("/auth/user",userRoutes);
+app.use("/users",userRoutes);
 app.use("/dealer",dealerRoutes);
 app.use("/vehicles/cars",carRoutes);
 app.use("/vehicles/bikes",bikeRoutes);
