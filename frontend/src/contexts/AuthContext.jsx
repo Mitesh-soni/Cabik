@@ -20,7 +20,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const [user, setUser] = useState(loadUser());
-  console.log("Users",user?.user?.username)
+  // console.log("Users",user?.user?.username)
   // ---- LOGIN ----
   const login = (userData) => {
     if (!userData) return; // prevent "undefined" from being saved

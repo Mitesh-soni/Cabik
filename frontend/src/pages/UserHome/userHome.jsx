@@ -3,11 +3,17 @@ import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import { getCars, getBikes, getScooties } from "../../api/vehicleApi";
 import "./userHome.css";
+import { useNavigate } from "react-router-dom";
 
 export default function UserHome() {
+  const navigate = useNavigate();
+
   const [cars, setCars] = useState([]);
+  console.log(cars);
   const [bikes, setBikes] = useState([]);
+  console.log(bikes)
   const [scooties, setScooties] = useState([]);
+  // console.log(scooties)
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -15,26 +21,26 @@ export default function UserHome() {
   }, []);
 
   const loadVehicles = async () => {
-    setLoading(true);
-    try {
-      const [resCars, resBikes, resScooties] = await Promise.all([
-        getCars(),
-        getBikes(),
-        getScooties()
-      ]);
+  setLoading(true);
+  try {
+    const [resCars, resBikes, resScooties] = await Promise.all([
+      getCars(),
+      getBikes(),
+      getScooties()
+    ]);
 
-      setCars(resCars?.data?.cars || []);
-      setBikes(resBikes?.data?.bikes || []);
-      setScooties(resScooties?.data?.scooties || []);
-    } catch (error) {
-      console.error("Error fetching vehicles:", error);
-      setCars([]);
-      setBikes([]);
-      setScooties([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+    setCars(resCars?.data?.data || []);
+    setBikes(resBikes?.data?.data || []);
+    setScooties(resScooties?.data?.data || []);
+  } catch (error) {
+    console.error("Error fetching vehicles:", error);
+    setCars([]);
+    setBikes([]);
+    setScooties([]);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const imageSrc = (item, ...fields) => {
     // Try possible image fields in order; fallback to placeholder
@@ -99,7 +105,7 @@ export default function UserHome() {
                 <Card key={car.id}>
                   <div className="card-media">
                     <img
-                      src={imageSrc(car, "front_image", "frontImage", "image_url", "image")}
+                      src={imageSrc(car, "front_image")}
                       alt={`${car.brand} ${car.model}`}
                       loading="lazy"
                       onError={(e) => (e.currentTarget.src = "/placeholder.png")}
@@ -120,7 +126,7 @@ export default function UserHome() {
                     </div>
 
                     <div className="card-actions">
-                      <button className="btn-sm">View</button>
+                      <button className="btn-sm" onClick={() => navigate(`/cars/${car?.id}`)}>View</button>
                       <button className="btn-sm outline">Contact</button>
                     </div>
                   </div>
@@ -152,7 +158,7 @@ export default function UserHome() {
                 <Card key={bike.id}>
                   <div className="card-media">
                     <img
-                      src={imageSrc(bike, "front_image", "frontImage", "image_url", "image")}
+                      src={imageSrc(bike, "front_image")}
                       alt={`${bike.brand} ${bike.model}`}
                       loading="lazy"
                       onError={(e) => (e.currentTarget.src = "/placeholder.png")}
@@ -170,7 +176,7 @@ export default function UserHome() {
                     </div>
 
                     <div className="card-actions">
-                      <button className="btn-sm">View</button>
+                      <button className="btn-sm" onClick={() => navigate(`/bikes/${bike?.id}`)}>View</button>
                       <button className="btn-sm outline">Contact</button>
                     </div>
                   </div>
@@ -220,7 +226,7 @@ export default function UserHome() {
                     </div>
 
                     <div className="card-actions">
-                      <button className="btn-sm">View</button>
+                      <button className="btn-sm" onClick={() => navigate(`/scooties/${scooties?.id}`)}>View</button>
                       <button className="btn-sm outline">Contact</button>
                     </div>
                   </div>

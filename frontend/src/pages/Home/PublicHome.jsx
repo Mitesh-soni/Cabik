@@ -53,15 +53,14 @@ export default function PublicHome() {
                     <p className="muted">
                         Coming soon — stay ahead of the market
                     </p>
-
                     <div className="teaser-grid">
                         <div className="upcoming-card">
                             <span className="badge">Coming Soon</span>
-                            <h4>Hyundai Ioniq 5</h4>
+                            <h4>Hyundai Ioniq 6</h4>
                         </div>
                         <div className="upcoming-card">
                             <span className="badge">Coming Soon</span>
-                            <h4>Hero Xtreme 210</h4>
+                            <h4>Hero Xtreme 250R</h4>
                         </div>
                         <div className="upcoming-card">
                             <span className="badge">Coming Soon</span>
