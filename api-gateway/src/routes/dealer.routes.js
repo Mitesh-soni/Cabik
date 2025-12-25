@@ -1,5 +1,4 @@
 import express from "express";
-import dotenv from "dotenv";
 import { forwardRequest } from "../utils/serviceCaller.js";
 import { DEALER_SERVICE } from "../services/service.js";
 

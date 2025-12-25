@@ -1,3 +1,4 @@
+import React from "react";
 import { useEffect, useState } from "react";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
@@ -9,9 +10,9 @@ export default function UserHome() {
   const navigate = useNavigate();
 
   const [cars, setCars] = useState([]);
-  console.log(cars);
+  // console.log(cars);
   const [bikes, setBikes] = useState([]);
-  console.log(bikes)
+  // console.log(bikes)
   const [scooties, setScooties] = useState([]);
   // console.log(scooties)
   const [loading, setLoading] = useState(true);
@@ -74,10 +75,10 @@ export default function UserHome() {
             </p>
           </div>
           <div className="hero-actions">
-            <button className="btn-outline" onClick={() => window.scrollTo({ top: 300, behavior: "smooth" })}>
+            <button className="btn-outline" onClick={() => window.scrollTo({ top: 200, behavior: "smooth" })}>
               Explore Cars
             </button>
-            <button className="btn-primary" onClick={() => window.scrollTo({ top: 2500, behavior: "smooth" })}>
+            <button className="btn-primary" onClick={() => window.scrollTo({ top: 1500, behavior: "smooth" })}>
               Explore Bikes & Scooties
             </button>
           </div>

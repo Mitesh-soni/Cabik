@@ -1,36 +1,29 @@
-import { createContext, useState,useContext } from "react";
+import React, { createContext, useState, useContext } from "react";
 
-export const AuthContext = createContext();
+export const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-
-  // ---- SAFE JSON PARSE ----
+  /* SAFE LOAD USER */
   const loadUser = () => {
     const stored = localStorage.getItem("cabik-user");
-
     if (!stored) return null;
 
     try {
-      return JSON.parse(stored); // only valid JSON works
-    } catch (err) {
-      console.error("Invalid JSON in localStorage, clearing…");
+      return JSON.parse(stored);
+    } catch {
       localStorage.removeItem("cabik-user");
       return null;
     }
   };
 
   const [user, setUser] = useState(loadUser());
-  // console.log("Users",user?.user?.username)
-  // ---- LOGIN ----
-  const login = (userData) => {
-    if (!userData) return; // prevent "undefined" from being saved
 
+  const login = (userData) => {
+    if (!userData) return;
     localStorage.setItem("cabik-user", JSON.stringify(userData));
-    // console.log("Localstorage",localStorage.setItem("cabik-user", JSON.stringify(userData)));
     setUser(userData);
   };
 
-  // ---- LOGOUT ----
   const logout = () => {
     localStorage.removeItem("cabik-user");
     setUser(null);

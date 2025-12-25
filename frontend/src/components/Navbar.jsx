@@ -5,7 +5,7 @@ import "./Navbar.css";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
-  console.log(user);
+  // console.log(user);
   const navigate = useNavigate(); 
 
   return (
