@@ -42,10 +42,10 @@ export default function Navbar() {
 
       {/* Center Navigation  */}
       <ul className="navbar-links">
-        <li>Home</li>
-        <li>Cars</li>
-        <li>Bikes</li>
-        <li>Scooties</li>
+        <li><button onClick={() => navigate("/")} className="nav-link">Home</button></li>
+        <li><button onClick={() => navigate("/")} className="nav-link">Cars</button></li>
+        <li><button onClick={() => navigate("/")} className="nav-link">Bikes</button></li>
+        <li><button onClick={() => navigate("/")} className="nav-link">Scooties</button></li>
       </ul>
 
       {/* Right User Section */}
