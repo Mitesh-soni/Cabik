@@ -1,240 +1,343 @@
-import React from "react";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import { getCars, getBikes, getScooties } from "../../api/vehicleApi";
+import { AuthContext } from "../../contexts/AuthContext";
 import "./userHome.css";
-import { useNavigate } from "react-router-dom";
 
 export default function UserHome() {
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
 
   const [cars, setCars] = useState([]);
-  // console.log(cars);
   const [bikes, setBikes] = useState([]);
-  // console.log(bikes)
   const [scooties, setScooties] = useState([]);
-  // console.log(scooties)
   const [loading, setLoading] = useState(true);
+  const [activeFilter, setActiveFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [favorites, setFavorites] = useState([]);
+  const [sortBy, setSortBy] = useState("popular");
 
   useEffect(() => {
     loadVehicles();
   }, []);
 
   const loadVehicles = async () => {
-  setLoading(true);
-  try {
-    const [resCars, resBikes, resScooties] = await Promise.all([
-      getCars(),
-      getBikes(),
-      getScooties()
-    ]);
+    setLoading(true);
+    try {
+      const [resCars, resBikes, resScooties] = await Promise.all([
+        getCars(),
+        getBikes(),
+        getScooties()
+      ]);
 
-    setCars(resCars?.data?.data || []);
-    setBikes(resBikes?.data?.data || []);
-    setScooties(resScooties?.data?.data || []);
-  } catch (error) {
-    console.error("Error fetching vehicles:", error);
-    setCars([]);
-    setBikes([]);
-    setScooties([]);
-  } finally {
-    setLoading(false);
-  }
-};
+      setCars(resCars?.data?.data || []);
+      setBikes(resBikes?.data?.data || []);
+      setScooties(resScooties?.data?.data || []);
+    } catch (error) {
+      console.error("Error fetching vehicles:", error);
+      setCars([]);
+      setBikes([]);
+      setScooties([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const imageSrc = (item, ...fields) => {
-    // Try possible image fields in order; fallback to placeholder
     for (const f of fields) {
       if (item?.[f]) return item[f];
     }
-    return "/placeholder.png";
+    return "https://via.placeholder.com/320x320?text=Vehicle";
   };
 
-  const formatPrice = (num) => {
-    if (num === null || num === undefined || num === 0) return "—";
-    try {
-      return Number(num).toLocaleString("en-IN");
-    } catch {
-      return num;
+  const toggleFavorite = (id) => {
+    setFavorites((prev) =>
+      prev.includes(id) ? prev.filter((fav) => fav !== id) : [...prev, id]
+    );
+  };
+
+  const getFilteredVehicles = () => {
+    let all = [];
+
+    if (activeFilter === "all" || activeFilter === "cars") {
+      all = all.concat(cars.map((c) => ({ ...c, type: "cars" })));
     }
+    if (activeFilter === "all" || activeFilter === "bikes") {
+      all = all.concat(bikes.map((b) => ({ ...b, type: "bikes" })));
+    }
+    if (activeFilter === "all" || activeFilter === "scooties") {
+      all = all.concat(scooties.map((s) => ({ ...s, type: "scooties" })));
+    }
+
+    let filtered = all.filter(
+      (v) =>
+        (v.brand?.toLowerCase() || "").includes(
+          searchQuery.toLowerCase()
+        ) ||
+        (v.model?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
+        (v.variant?.toLowerCase() || "").includes(searchQuery.toLowerCase())
+    );
+
+    // Sort
+    if (sortBy === "price-low") {
+      filtered.sort((a, b) => (a.ex_showroom_price || 0) - (b.ex_showroom_price || 0));
+    } else if (sortBy === "price-high") {
+      filtered.sort((a, b) => (b.ex_showroom_price || 0) - (a.ex_showroom_price || 0));
+    }
+
+    return filtered;
   };
 
-  const Card = ({ children }) => <div className="card">{children}</div>;
+  const filteredVehicles = getFilteredVehicles();
+
+  const VehicleCard = ({ vehicle, type }) => (
+    <div className="vehicle-card">
+      <div className="card-image-wrapper">
+        <img
+          src={vehicle.front_image || vehicle.image || vehicle.image_url || "https://via.placeholder.com/400x300?text=" + vehicle.model}
+          alt={vehicle.model}
+          className="card-image"
+          loading="lazy"
+          onError={(e) => {
+            e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect fill='%23f0f0f0' width='400' height='300'/%3E%3Ctext x='50%25' y='50%25' font-size='16' fill='%23999' text-anchor='middle' dy='.3em'%3E" + vehicle.model + "%3C/text%3E%3C/svg%3E";
+          }}
+        />
+        <span className="type-badge">
+          {type === "cars" ? "🚗 Car" : type === "bikes" ? "🏍️ Bike" : "🛵 Scooty"}
+        </span>
+        <button
+          className={`favorite-btn ${favorites.includes(vehicle.id) ? "active" : ""}`}
+          onClick={() => toggleFavorite(vehicle.id)}
+        >
+          {favorites.includes(vehicle.id) ? "❤️" : "🤍"}
+        </button>
+        {vehicle.discount && (
+          <span className="discount-badge">{vehicle.discount}% OFF</span>
+        )}
+      </div>
+
+      <div className="card-content">
+        <p className="vehicle-name">{vehicle.brand}</p>
+        <p className="model-name">{vehicle.model}</p>
+        {vehicle.variant && (
+          <p className="vehicle-variant">{vehicle.variant}</p>
+        )}
+
+        <div className="specs-row">
+          <span className="spec">{vehicle.fuel_type || "Petrol"}</span>
+          <span className="separator">•</span>
+          <span className="spec">{vehicle.transmission || "Manual"}</span>
+          <span className="separator">•</span>
+          <span className="spec">{vehicle.seating_capacity || 5} Seater</span>
+        </div>
+
+        {vehicle.engine_cc && (
+          <div className="engine-info">💨 {vehicle.engine_cc}cc</div>
+        )}
+
+        <div className="price-section">
+          <div className="price-display">
+            <span className="currency">₹</span>
+            <span className="amount">
+              {vehicle.ex_showroom_price ? (vehicle.ex_showroom_price / 100000).toFixed(2) : "N/A"}L
+            </span>
+          </div>
+          <p className="price-note">Estimated Price</p>
+        </div>
+
+        <div className="card-actions">
+          <button
+            className="btn-view"
+            onClick={() => navigate(`/${type}/${vehicle.id}`)}
+          >
+            View Details
+          </button>
+          <button
+            className="btn-contact"
+            onClick={() => alert("Contact dealer feature coming soon!")}
+          >
+            Contact
+          </button>
+        </div>
+
+        <div className="quick-emi">
+          <span className="emi-icon">💳</span>
+          EMI from ₹{Math.round((vehicle.ex_showroom_price || 0) / 60000)}K/month
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <>
       <Navbar />
-
-      <main className="home-container">
-        <header className="home-hero">
-          <div>
-            <h1>Discover Vehicles</h1>
-            <p className="hero-sub">
-              Browse curated Cars, Bikes & Scooties — real data from your backend.
+      <main className="user-home-container">
+        {/* WELCOME HERO */}
+        <section className="welcome-hero">
+          <div className="hero-content">
+            <h1 className="hero-title">
+              Welcome Back, <span className="gradient-text">{user?.user?.full_name || "Guest"}</span>
+            </h1>
+            <p className="hero-subtitle">
+              Discover your perfect vehicle with flexible EMI options
             </p>
           </div>
-          <div className="hero-actions">
-            <button className="btn-outline" onClick={() => window.scrollTo({ top: 200, behavior: "smooth" })}>
-              Explore Cars
+          <div className="hero-stats">
+            <div className="stat-item">
+              <span className="stat-number">{cars.length + bikes.length + scooties.length}+</span>
+              <span className="stat-label">Vehicles</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-number">500+</span>
+              <span className="stat-label">Dealers</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-number">100%</span>
+              <span className="stat-label">Secure</span>
+            </div>
+          </div>
+        </section>
+
+        {/* SEARCH & FILTER */}
+        <section className="search-section">
+          <div className="search-box">
+            <input
+              type="text"
+              className="search-input"
+              placeholder="Search by brand, model, or variant..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          <div className="filter-controls">
+            <div className="filter-group">
+              <label>Vehicle Type</label>
+              <div className="filter-buttons">
+                {["all", "cars", "bikes", "scooties"].map((filter) => (
+                  <button
+                    key={filter}
+                    className={`filter-btn ${activeFilter === filter ? "active" : ""}`}
+                    onClick={() => setActiveFilter(filter)}
+                  >
+                    {filter === "all"
+                      ? "All"
+                      : filter === "cars"
+                      ? "Cars"
+                      : filter === "bikes"
+                      ? "Bikes"
+                      : "Scooties"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="filter-group">
+              <label>Sort By</label>
+              <select
+                className="sort-select"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+              >
+                <option value="popular">Popular</option>
+                <option value="price-low">Price: Low to High</option>
+                <option value="price-high">Price: High to Low</option>
+              </select>
+            </div>
+
+            <div className="favorites-indicator">
+              <span className="fav-icon">❤️</span>
+              <span className="fav-count">{favorites.length}</span>
+              <span className="fav-label">Favorites</span>
+            </div>
+          </div>
+        </section>
+
+        {/* VEHICLES GRID */}
+        {loading ? (
+          <section className="vehicles-section">
+            <div className="vehicles-grid">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="vehicle-card skeleton">
+                  <div className="image-skeleton"></div>
+                  <div className="card-content">
+                    <div className="text-skeleton"></div>
+                    <div className="text-skeleton short"></div>
+                    <div className="text-skeleton short"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : filteredVehicles.length > 0 ? (
+          <section className="vehicles-section">
+            <div className="section-header">
+              <h2>Available Vehicles</h2>
+              <p className="result-count">{filteredVehicles.length} results found</p>
+            </div>
+            <div className="vehicles-grid">
+              {filteredVehicles.map((vehicle) => (
+                <VehicleCard
+                  key={`${vehicle.type}-${vehicle.id}`}
+                  vehicle={vehicle}
+                  type={vehicle.type}
+                />
+              ))}
+            </div>
+          </section>
+        ) : (
+          <section className="empty-state">
+            <div className="empty-icon">🔍</div>
+            <h2>No Vehicles Found</h2>
+            <p>Try adjusting your search filters</p>
+            <button
+              className="btn-reset"
+              onClick={() => {
+                setSearchQuery("");
+                setActiveFilter("all");
+                setSortBy("popular");
+              }}
+            >
+              Reset Filters
             </button>
-            <button className="btn-primary" onClick={() => window.scrollTo({ top: 1500, behavior: "smooth" })}>
-              Explore Bikes & Scooties
+          </section>
+        )}
+
+        {/* QUICK FEATURES */}
+        <section className="quick-features">
+          <div className="feature-card">
+            <div className="feature-icon">💳</div>
+            <h3>Flexible EMI</h3>
+            <p>Choose from multiple banks with instant approval</p>
+          </div>
+          <div className="feature-card">
+            <div className="feature-icon">🛡️</div>
+            <h3>Insurance</h3>
+            <p>Get comprehensive coverage for your vehicle</p>
+          </div>
+          <div className="feature-card">
+            <div className="feature-icon">⭐</div>
+            <h3>Best Prices</h3>
+            <p>Compare and find the best deals instantly</p>
+          </div>
+          <div className="feature-card">
+            <div className="feature-icon">🚚</div>
+            <h3>Quick Delivery</h3>
+            <p>Get your vehicle delivered hassle-free</p>
+          </div>
+        </section>
+
+        {/* CTA SECTION */}
+        <section className="cta-section">
+          <div className="cta-content">
+            <h2>Ready to Buy?</h2>
+            <p>Start your vehicle purchase journey now with instant EMI approval</p>
+            <button className="btn-cta" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
+              Explore Now 🚀
             </button>
           </div>
-        </header>
-
-        {/* Cars */}
-        <section className="section">
-          <h2 className="section-title">Cars</h2>
-
-          {loading ? (
-            <div className="card-grid skeleton-grid">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="card skeleton">
-                  <div className="img-skeleton" />
-                  <div className="text-skeleton short" />
-                  <div className="text-skeleton" />
-                </div>
-              ))}
-            </div>
-          ) : cars.length === 0 ? (
-            <p className="empty">No cars found.</p>
-          ) : (
-            <div className="card-grid">
-              {cars.map((car) => (
-                <Card key={car.id}>
-                  <div className="card-media">
-                    <img
-                      src={imageSrc(car, "front_image")}
-                      alt={`${car.brand} ${car.model}`}
-                      loading="lazy"
-                      onError={(e) => (e.currentTarget.src = "/placeholder.png")}
-                    />
-                    <div className="price-badge">₹{formatPrice(car.ex_showroom_price)}</div>
-                    <div className="fav">♡</div>
-                  </div>
-
-                  <div className="card-body">
-                    <h3 className="card-title">{car.brand} <span className="muted">{car.model}</span></h3>
-
-                    <div className="card-specs">
-                      <span>{car.fuel_type || "Fuel: —"}</span>
-                      <span> · </span>
-                      <span>{car.transmission || "Transmission: —"}</span>
-                      <span> · </span>
-                      <span>{car.seating_capacity ? `${car.seating_capacity} seater` : "Seats: —"}</span>
-                    </div>
-
-                    <div className="card-actions">
-                      <button className="btn-sm" onClick={() => navigate(`/cars/${car?.id}`)}>View</button>
-                      <button className="btn-sm outline">Contact</button>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* Bikes */}
-        <section className="section">
-          <h2 className="section-title">Bikes</h2>
-
-          {loading ? (
-            <div className="card-grid skeleton-grid">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="card skeleton">
-                  <div className="img-skeleton" />
-                  <div className="text-skeleton short" />
-                  <div className="text-skeleton" />
-                </div>
-              ))}
-            </div>
-          ) : bikes.length === 0 ? (
-            <p className="empty">No bikes found.</p>
-          ) : (
-            <div className="card-grid">
-              {bikes.map((bike) => (
-                <Card key={bike.id}>
-                  <div className="card-media">
-                    <img
-                      src={imageSrc(bike, "front_image")}
-                      alt={`${bike.brand} ${bike.model}`}
-                      loading="lazy"
-                      onError={(e) => (e.currentTarget.src = "/placeholder.png")}
-                    />
-                    <div className="price-badge">₹{formatPrice(bike.ex_showroom_price)}</div>
-                  </div>
-
-                  <div className="card-body">
-                    <h3 className="card-title">{bike.brand} <span className="muted">{bike.model}</span></h3>
-
-                    <div className="card-specs">
-                      <span>{bike.engine_cc ? `${bike.engine_cc} CC` : "—"}</span>
-                      <span> · </span>
-                      <span>{bike.braking_system || "Brakes: —"}</span>
-                    </div>
-
-                    <div className="card-actions">
-                      <button className="btn-sm" onClick={() => navigate(`/bikes/${bike?.id}`)}>View</button>
-                      <button className="btn-sm outline">Contact</button>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* Scooties */}
-        <section className="section">
-          <h2 className="section-title">Scooties</h2>
-
-          {loading ? (
-            <div className="card-grid skeleton-grid">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="card skeleton">
-                  <div className="img-skeleton" />
-                  <div className="text-skeleton short" />
-                  <div className="text-skeleton" />
-                </div>
-              ))}
-            </div>
-          ) : scooties.length === 0 ? (
-            <p className="empty">No scooties found.</p>
-          ) : (
-            <div className="card-grid">
-              {scooties.map((scooty) => (
-                <Card key={scooty.id}>
-                  <div className="card-media">
-                    <img
-                      src={imageSrc(scooty, "front_image", "frontImage", "image_url", "image")}
-                      alt={`${scooty.brand} ${scooty.model}`}
-                      loading="lazy"
-                      onError={(e) => (e.currentTarget.src = "/placeholder.png")}
-                    />
-                    <div className="price-badge">₹{formatPrice(scooty.ex_showroom_price)}</div>
-                  </div>
-
-                  <div className="card-body">
-                    <h3 className="card-title">{scooty.brand} <span className="muted">{scooty.model}</span></h3>
-
-                    <div className="card-specs">
-                      <span>{scooty.mileage ? `${scooty.mileage} kmpl` : "—"}</span>
-                      <span> · </span>
-                      <span>{scooty.engine_cc ? `${scooty.engine_cc} CC` : "—"}</span>
-                    </div>
-
-                    <div className="card-actions">
-                      <button className="btn-sm" onClick={() => navigate(`/scooties/${scooties?.id}`)}>View</button>
-                      <button className="btn-sm outline">Contact</button>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          )}
         </section>
       </main>
 

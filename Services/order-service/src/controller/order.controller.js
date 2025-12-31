@@ -47,13 +47,25 @@ export const confirmPrice = async (req, res) => {
 ============================ */
 export const addEmiDetails = async (req, res) => {
   try {
-    const data = await orderService.addEmiDetails(
-      req.params.orderId,
-      req.body
-    );
+    const { orderId } = req.params;
+    const { bank_name, interest_rate, tenure_years, down_payment, monthly_emi, processing_fee } = req.body;
+
+    // Validate required EMI fields
+    if (!bank_name || !monthly_emi) {
+      return res.status(400).json({
+        message: "Bank name and monthly EMI are required"
+      });
+    }
+
+    console.log(`Saving EMI for order ${orderId}:`, { bank_name, monthly_emi, tenure_years });
+
+    const data = await orderService.addEmiDetails(orderId, req.body);
+    
+    console.log(`EMI saved successfully for order ${orderId}`);
+    
     res.json(data);
   } catch (err) {
-    console.error(err);
+    console.error(`Failed to save EMI for order ${req.params.orderId}:`, err);
     res.status(500).json({ message: "Failed to add EMI details" });
   }
 };
@@ -79,13 +91,18 @@ export const payOrder = async (req, res) => {
     const { orderId } = req.params;
     const { payment_method } = req.body;
 
-     if (!payment_method) {
+    if (!payment_method) {
       return res.status(400).json({
         message: "payment_method is required"
       });
     }
 
-    const result = await orderService.payOrder(orderId, payment_method);
+    // Log payment attempt for debugging
+    console.log(`Payment attempt - Order: ${orderId}, Method: ${payment_method}`);
+
+    const result = await orderService.payOrder(orderId, req.body);
+
+    console.log(`Payment successful - Order: ${orderId}`);
 
     res.json({
       message: "Payment successful",
@@ -93,7 +110,16 @@ export const payOrder = async (req, res) => {
       payment: result
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    const errorMessage = err.message || "Payment processing failed";
+    console.error("Payment error for order", req.params.orderId, ":", errorMessage);
+    
+    // Return appropriate status based on error type
+    const status = errorMessage.includes("EMI details") ? 400 : 500;
+    
+    res.status(status).json({ 
+      message: errorMessage,
+      error: process.env.NODE_ENV === 'development' ? err.toString() : undefined
+    });
   }
 };
 

@@ -1,16 +1,15 @@
 import React from "react";
 import { Routes, Route } from "react-router-dom";
+
 // Pages
 import Home from "./pages/publicHome/Home.jsx";
 import Login from "./pages/Login/Login.jsx";
 import Register from "./pages/Register/Register.jsx";
-import CarDetail from "./pages/VehicleDetail/carDetail.jsx";
-import BikeDetail from "./pages/VehicleDetail/bikeDetail.jsx";
-import ScootyDetail from "./pages/VehicleDetail/scootyDetail.jsx";
+import VehicleDetail from "./pages/VehicleDetail/vehicleDetail.jsx";
 import Checkout from "./pages/Checkout/Checkout.jsx";
 import Payment from "./pages/Payment/Payment.jsx";
-// import OrderSuccess from "./pages/OrderSuccess/OrderSuccess.jsx"
-
+import OrderSuccess from "./pages/OrderSuccess/OrderSuccess.jsx";
+import Invoice from "./pages/Invoice/Invoice.jsx";
 
 // Auth Protection
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
@@ -19,10 +18,54 @@ function App() {
   return (
     <Routes>
 
-      {/* SMART HOME (PUBLIC / USER BASED) */}
+      {/* PUBLIC */}
       <Route path="/" element={<Home />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
 
-      {/* PROTECTED ROUTES */}
+      {/* VEHICLE DETAILS (PUBLIC) */}
+      <Route path="/cars/:id" element={<VehicleDetail />} />
+      <Route path="/bikes/:id" element={<VehicleDetail />} />
+      <Route path="/scooties/:id" element={<VehicleDetail />} />
+
+      {/* 🔐 PROTECTED FLOW */}
+      <Route
+        path="/checkout/:type/:id"
+        element={
+          <ProtectedRoute>
+            <Checkout />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/payment/:orderId"
+        element={
+          <ProtectedRoute>
+            <Payment />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/order-success/:orderId"
+        element={
+          <ProtectedRoute>
+            <OrderSuccess />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/invoice/:orderId"
+        element={
+          <ProtectedRoute>
+            <Invoice />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* EXAMPLE DASHBOARD */}
       <Route
         path="/dashboard"
         element={
@@ -31,17 +74,8 @@ function App() {
           </ProtectedRoute>
         }
       />
-
-      {/* AUTH */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/cars/:id" element={<CarDetail />} />
-      <Route path="/bikes/:id" element={<BikeDetail />} />
-      <Route path="/scooties/:id" element={<ScootyDetail />} />
-      <Route path="/checkout/car/:id" element={<Checkout />} />
-      <Route path="/payment/:orderId" element={<Payment />} />
-      {/* <Route path="/order-success/:id" element={<OrderSuccess />} /> */}
     </Routes>
   );
 }
+
 export default App;

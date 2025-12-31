@@ -44,3 +44,10 @@ export const addInsuranceDetails = (orderId, data) => {
 export const getOrderById = (orderId) => {
   return API.get(`/orders/${orderId}`);
 };
+
+/* =========================
+   PAY ORDER
+========================= */
+export const payOrder = (orderId, data) => {
+  return API.post(`/orders/${orderId}/pay`, data);
+};

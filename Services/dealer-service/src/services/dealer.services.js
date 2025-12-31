@@ -67,3 +67,23 @@ export const createDealer = async (data) => {
 
   return result.rows[0];
 };
+
+export const getDealerById = async (id) => {
+  const result = await pool.query(
+    `SELECT 
+       id,
+       company_name,
+       owner_name,
+       city,
+       state,
+       phone,
+       email,
+       COALESCE(rating, 4.5) AS rating
+     FROM dealers
+     WHERE id = $1`,
+    [id]
+  );
+
+  if (!result.rows.length) return null;
+  return result.rows[0];
+};

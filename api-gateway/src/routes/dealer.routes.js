@@ -14,4 +14,14 @@ router.post("/register",async (req,res)=>{
         }
 })
 
+// Fetch dealer by id
+router.get("/:id", async (req, res) => {
+    try {
+        const result = await forwardRequest(`${DEALER_SERVICE}/dealer/${req.params.id}`, "GET");
+        res.json(result);
+    } catch (err) {
+        res.status(err.status || 500).json({ error: err.message });
+    }
+});
+
 export default router;

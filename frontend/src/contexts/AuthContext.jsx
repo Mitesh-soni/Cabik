@@ -1,8 +1,10 @@
 import React, { createContext, useState, useContext } from "react";
+import { useNavigate } from "react-router-dom";
 
 export const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
+  const navigate = useNavigate();
   /* SAFE LOAD USER */
   const loadUser = () => {
     const stored = localStorage.getItem("cabik-user");
@@ -27,6 +29,7 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     localStorage.removeItem("cabik-user");
     setUser(null);
+     navigate("/");
   };
 
   return (

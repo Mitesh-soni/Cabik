@@ -15,4 +15,13 @@ app.get("/", (req, res) => {
   res.json({ status: "Orders Service Running" });
 });
 
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error("Unhandled error:", err);
+  res.status(500).json({
+    message: err.message || "Internal server error",
+    error: process.env.NODE_ENV === "development" ? err.toString() : undefined
+  });
+});
+
 export default app;

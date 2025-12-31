@@ -97,7 +97,9 @@ router.post("/:orderId/pay", async (req, res) => {
     );
     res.json(response.data);
   } catch (err) {
-    res.status(500).json({ message: "Payment failed" });
+    res.status(err.response?.status || 500).json(
+      err.response?.data || { message: "Payment failed" }
+    );
   }
 });
 

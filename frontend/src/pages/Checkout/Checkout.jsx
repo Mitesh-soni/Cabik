@@ -1,145 +1,235 @@
-import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
-import { useEffect, useState, useContext, useRef } from "react";
+import { useEffect, useState, useContext, useMemo } from "react";
 import Navbar from "../../components/Navbar.jsx";
 import Footer from "../../components/Footer.jsx";
-import { getCarById } from "../../api/vehicleApi.js";
-import { createOrder, addPriceBreakup } from "../../api/orderApi.js";
+import {
+  getCarById,
+  getBikeById,
+  getScootyById
+} from "../../api/vehicleApi.js";
+import { createOrder, addPriceBreakup, addEmiDetails, addInsuranceDetails } from "../../api/orderApi.js";
 import { emi, insurance } from "../../api/financeApi.js";
 import { AuthContext } from "../../contexts/AuthContext.jsx";
 import "./checkout.css";
 
 export default function Checkout() {
-  const { id } = useParams();
+  const { id, type } = useParams();
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
 
-  const [car, setCar] = useState(null);
+  const normalizedType = (type || "car").toLowerCase();
+
+  const config = useMemo(() => ({
+    car: { fetch: getCarById, label: "Car", typeCode: "CAR" },
+    bike: { fetch: getBikeById, label: "Bike", typeCode: "BIKE" },
+    scooty: { fetch: getScootyById, label: "Scooty", typeCode: "SCOOTY" }
+  }), []);
+
+  const activeConfig = config[normalizedType] || config.car;
+
+  const [vehicle, setVehicle] = useState(null);
   const [orderId, setOrderId] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState(false);
 
   /* EMI + INSURANCE */
   const [emiOptions, setEmiOptions] = useState([]);
-
+  const [selectedEmi, setSelectedEmi] = useState(null);
   const [insurancePlans, setInsurancePlans] = useState([]);
   const [selectedInsurance, setSelectedInsurance] = useState(null);
 
-  /* prevent duplicate order */
-  const orderCreatedRef = useRef(false);
+  // Single order per session
+  const orderCacheKey = useMemo(
+    () => `checkout-order-${user?.user?.id}-${normalizedType}-${id}`,
+    [user?.user?.id, normalizedType, id]
+  );
 
-  /* LOAD CAR */
+  /* LOAD VEHICLE */
   useEffect(() => {
-    const loadCar = async () => {
+    const loadVehicle = async () => {
+      setLoading(true);
       try {
-        const res = await getCarById(id);
-        setCar(res.data.vehicle);
+        const res = await activeConfig.fetch(id);
+        setVehicle(res.data.vehicle);
+        
+        // Restore cached order if exists
+        const cached = sessionStorage.getItem(orderCacheKey);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed?.orderId) setOrderId(parsed.orderId);
+        }
       } catch (err) {
         console.error(err);
+        setVehicle(null);
       } finally {
         setLoading(false);
       }
     };
-    loadCar();
-  }, [id]);
+    loadVehicle();
+  }, [id, activeConfig, orderCacheKey]);
+
+  useEffect(() => {
+    if (!user) navigate("/");
+  }, [user, navigate]);
 
   /* CREATE ORDER ONCE */
   useEffect(() => {
-    if (!car || !user || orderCreatedRef.current) return;
+    if (!vehicle || !user || orderId) return;
 
     const initOrder = async () => {
       try {
+        const exPrice = Number(
+          vehicle.ex_showroom_price ??
+          vehicle.price ??
+          vehicle.base_price ??
+          0
+        );
+
         const res = await createOrder({
           user_id: user.user.id,
-          dealer_id: car.dealer_id,
-          vehicle_type: "CAR",
-          vehicle_id: car.id,
-          base_price: car.ex_showroom_price
+          dealer_id: vehicle.dealer_id,
+          vehicle_type: activeConfig.typeCode,
+          vehicle_id: vehicle.id,
+          base_price: exPrice
         });
 
         setOrderId(res.data.id);
-        orderCreatedRef.current = true;
+        sessionStorage.setItem(orderCacheKey, JSON.stringify({ orderId: res.data.id }));
       } catch (err) {
         console.error("Order creation failed", err);
       }
     };
 
     initOrder();
-  }, [car, user]);
+  }, [vehicle, user, activeConfig, orderId, orderCacheKey]);
 
-  /* EMI FETCH */
+  /* LOAD EMI */
   useEffect(() => {
-    if (!car) return;
+    if (!vehicle) return;
 
     const loadEmi = async () => {
       try {
-        const res = await emi({
-          vehicle_type: "CAR",
-          vehicle_price: car.ex_showroom_price,
-          down_payment: 0,
-          tenure_years: 5
-        });
-        setEmiOptions(res.data.emi_options || []);
+        const exPrice = Number(
+          vehicle.ex_showroom_price ??
+          vehicle.price ??
+          vehicle.base_price ??
+          0
+        );
+
+        const variants = [activeConfig.typeCode, "CAR"];
+        for (const variant of variants) {
+          const res = await emi({
+            vehicle_type: variant,
+            vehicle_price: exPrice,
+            down_payment: 0,
+            tenure_years: 5
+          });
+
+          const options = res.data?.emi_options || [];
+          if (options.length) {
+            setEmiOptions(options);
+            return;
+          }
+        }
+        setEmiOptions([]);
       } catch (err) {
         console.error(err);
+        setEmiOptions([]);
       }
     };
 
     loadEmi();
-  }, [car]);
+  }, [vehicle, activeConfig.typeCode]);
 
-  /* INSURANCE FETCH */
+  /* LOAD INSURANCE */
   useEffect(() => {
-    if (!car) return;
+    if (!vehicle) return;
 
     const loadInsurance = async () => {
       try {
-        const res = await insurance("CAR");
-        setInsurancePlans(res.data.insurance_plans || []);
+        const variants = [activeConfig.typeCode, "CAR"];
+        for (const variant of variants) {
+          const res = await insurance(variant);
+          const plans = res.data?.insurance_plans || [];
+          if (plans.length) {
+            setInsurancePlans(plans);
+            return;
+          }
+        }
+        setInsurancePlans([]);
       } catch (err) {
         console.error(err);
+        setInsurancePlans([]);
       }
     };
 
     loadInsurance();
-  }, [car]);
+  }, [vehicle, activeConfig.typeCode]);
 
   if (loading) {
     return (
       <>
         <Navbar />
-        <div className="checkout-container">Loading checkout…</div>
+        <div className="checkout-container">
+          <div className="loading-spinner">Loading checkout…</div>
+        </div>
         <Footer />
       </>
     );
   }
 
-  if (!car) {
+  if (!vehicle) {
     return (
       <>
         <Navbar />
-        <div className="checkout-container">Car not found</div>
+        <div className="checkout-container">
+          <div className="error-box">Vehicle not found</div>
+        </div>
         <Footer />
       </>
     );
   }
 
-  /* =========================
-     PRICE CALCULATION (FIX)
-  ========================= */
-  const exPrice = Number(car.ex_showroom_price);
+  /* PRICE CALCULATION */
+  const exPrice = Number(
+    vehicle.ex_showroom_price ??
+    vehicle.price ??
+    vehicle.base_price ??
+    0
+  );
   const gstAmount = Math.round(exPrice * 0.28);
   const rtoAmount = 45000;
   const insuranceAmount = selectedInsurance
     ? Number(selectedInsurance.base_premium)
     : 0;
 
-  const totalAmount =
-    exPrice + gstAmount + rtoAmount + insuranceAmount;
+  const totalAmount = exPrice + gstAmount + rtoAmount + insuranceAmount;
 
-  /* CONTINUE */
+  const title = [vehicle.brand, vehicle.model].filter(Boolean).join(" ");
+  const subtitleParts = [
+    vehicle.variant,
+    vehicle.fuel_type,
+    vehicle.body_type,
+    vehicle.engine_cc ? `${vehicle.engine_cc} CC` : null
+  ].filter(Boolean);
+  const subtitle = subtitleParts.join(" · ");
+  const heroImg = vehicle.front_image || vehicle.side_image || vehicle.back_image || "/placeholder.png";
+
+  const hasEmi = Array.isArray(emiOptions) && emiOptions.length > 0;
+  const hasInsurance = Array.isArray(insurancePlans) && insurancePlans.length > 0;
+
+  /* PROCEED TO PAYMENT */
   const handleContinue = async () => {
+    if (!orderId) {
+      alert("Order not created yet. Please wait.");
+      return;
+    }
+
+    setProcessing(true);
+
     try {
-      await addPriceBreakup(orderId, {
+      // Save price breakdown with explicit console logging
+      console.log("Saving price breakdown:", {
         ex_showroom_price: exPrice,
         gst_amount: gstAmount,
         insurance_amount: insuranceAmount,
@@ -148,10 +238,52 @@ export default function Checkout() {
         discount_amount: 0
       });
 
+      const priceRes = await addPriceBreakup(orderId, {
+        ex_showroom_price: exPrice,
+        gst_amount: gstAmount,
+        insurance_amount: insuranceAmount,
+        rto_amount: rtoAmount,
+        accessories_amount: 0,
+        discount_amount: 0
+      });
+      console.log("Price breakdown saved:", priceRes.data);
+
+      // Save EMI if selected
+      if (selectedEmi) {
+        console.log("Saving EMI details:", selectedEmi);
+        const emiRes = await addEmiDetails(orderId, {
+          bank_name: selectedEmi.bank_name,
+          interest_rate: selectedEmi.interest_rate,
+          tenure_years: selectedEmi.tenure_years || 5,
+          down_payment: 0,
+          monthly_emi: selectedEmi.monthly_emi,
+          processing_fee: selectedEmi.processing_fee || 0
+        });
+        console.log("EMI details saved:", emiRes.data);
+        sessionStorage.setItem(`payment-mode-${orderId}`, "EMI");
+      } else {
+        sessionStorage.removeItem(`payment-mode-${orderId}`);
+      }
+
+      // Save Insurance if selected
+      if (selectedInsurance) {
+        console.log("Saving insurance details:", selectedInsurance);
+        const insRes = await addInsuranceDetails(orderId, {
+          provider_name: selectedInsurance.provider_name,
+          plan_name: selectedInsurance.plan_name,
+          coverage_type: selectedInsurance.coverage_type || "COMPREHENSIVE",
+          premium_amount: selectedInsurance.base_premium,
+          tenure_years: selectedInsurance.tenure_years || 1
+        });
+        console.log("Insurance details saved:", insRes.data);
+      }
+
       navigate(`/payment/${orderId}`);
     } catch (err) {
-      console.error(err);
-      alert("Price confirmation failed");
+      console.error("Error in handleContinue:", err);
+      alert("Failed to process. Please try again.");
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -160,114 +292,143 @@ export default function Checkout() {
       <Navbar />
 
       <div className="checkout-container">
-
-        {/* LEFT */}
-        <div className="checkout-left">
-
-          {/* VEHICLE */}
-          <div className="checkout-card">
-            <h3>Vehicle Summary</h3>
-            <div className="vehicle-summary">
-              <img src={car.front_image} alt={car.model} className="vehicle-img" />
-              <div>
-                <h4>{car.brand} {car.model}</h4>
-                <p>{car.variant} · {car.fuel_type}</p>
-                <strong>₹ {exPrice.toLocaleString("en-IN")}</strong>
+        <div className="checkout-grid">
+          {/* LEFT COLUMN - MAIN CONTENT */}
+          <div className="checkout-main">
+            {/* VEHICLE CARD */}
+            <div className="checkout-section vehicle-card">
+              <div className="section-header">
+                <h2>Vehicle Summary</h2>
+              </div>
+              <div className="vehicle-info">
+                <img src={heroImg} alt={title} className="vehicle-thumb" />
+                <div className="vehicle-details">
+                  <h3>{title}</h3>
+                  <p className="vehicle-subtitle">{subtitle}</p>
+                  <p className="vehicle-price">₹ {exPrice.toLocaleString("en-IN")}</p>
+                </div>
               </div>
             </div>
+
+            {/* EMI OPTIONS */}
+            <div className="checkout-section">
+              <div className="section-header">
+                <h2>EMI Options</h2>
+                <span className="badge">{hasEmi ? `${emiOptions.length} available` : "N/A"}</span>
+              </div>
+              {hasEmi ? (
+                <div className="options-grid">
+                  {emiOptions.map((e, i) => (
+                    <label
+                      key={i}
+                      className={`option-card ${selectedEmi === e ? "selected" : ""}`}
+                    >
+                      <input
+                        type="radio"
+                        name="emi"
+                        checked={selectedEmi === e}
+                        onChange={() => setSelectedEmi(e)}
+                      />
+                      <div className="option-content">
+                        <div className="option-title">{e.bank_name}</div>
+                        <div className="option-value">₹ {e.monthly_emi.toLocaleString("en-IN")}/mo</div>
+                        <div className="option-meta">{e.interest_rate}% p.a. · 5 years</div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <p className="empty-state">No EMI options available for this vehicle</p>
+              )}
+            </div>
+
+            {/* INSURANCE */}
+            <div className="checkout-section">
+              <div className="section-header">
+                <h2>Insurance Plans</h2>
+                <span className="badge">{hasInsurance ? `${insurancePlans.length} available` : "N/A"}</span>
+              </div>
+              {hasInsurance ? (
+                <div className="options-grid">
+                  {insurancePlans.map((p) => (
+                    <label
+                      key={p.plan_id}
+                      className={`option-card ${selectedInsurance === p ? "selected" : ""}`}
+                    >
+                      <input
+                        type="radio"
+                        name="insurance"
+                        checked={selectedInsurance === p}
+                        onChange={() => setSelectedInsurance(p)}
+                      />
+                      <div className="option-content">
+                        <div className="option-title">{p.provider_name}</div>
+                        <div className="option-value">₹ {p.base_premium.toLocaleString("en-IN")}/yr</div>
+                        <div className="option-meta">{p.plan_name}</div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <p className="empty-state">No insurance plans available</p>
+              )}
+            </div>
           </div>
 
-          {/* EMI */}
-          <div className="checkout-card">
-            <h3>EMI Options</h3>
-            {emiOptions.map((e, i) => (
-              <label key={i} style={{ display: "block", marginBottom: 10 }}>
-                <input
-                  type="radio"
-                  name="emi"
-                  onChange={() => setSelectedEmi(e)}
-                />{" "}
-                {e.bank_name} — ₹ {e.monthly_emi}/month ({e.interest_rate}%)
-              </label>
-            ))}
-          </div>
+          {/* RIGHT SIDEBAR */}
+          <div className="checkout-sidebar">
+            <div className="checkout-section sticky-card">
+              <div className="section-header">
+                <h2>Price Summary</h2>
+              </div>
 
-          {/* INSURANCE */}
-          <div className="checkout-card">
-            <h3>Insurance Plans</h3>
-            {insurancePlans.map((p) => (
-              <label key={p.plan_id} style={{ display: "block", marginBottom: 10 }}>
-                <input
-                  type="radio"
-                  name="insurance"
-                  onChange={() => setSelectedInsurance(p)}
-                />{" "}
-                {p.provider_name} — {p.plan_name}  
-                (₹ {p.base_premium.toLocaleString("en-IN")})
-              </label>
-            ))}
-          </div>
+              <div className="price-breakdown">
+                <div className="price-row">
+                  <span>Ex-showroom Price</span>
+                  <span>₹ {exPrice.toLocaleString("en-IN")}</span>
+                </div>
+                <div className="price-row">
+                  <span>GST (28%)</span>
+                  <span>₹ {gstAmount.toLocaleString("en-IN")}</span>
+                </div>
+                <div className="price-row">
+                  <span>RTO Charges</span>
+                  <span>₹ {rtoAmount.toLocaleString("en-IN")}</span>
+                </div>
+                <div className="price-row">
+                  <span>Insurance</span>
+                  <span className={insuranceAmount ? "highlight" : ""}>
+                    ₹ {insuranceAmount.toLocaleString("en-IN")}
+                  </span>
+                </div>
+                <div className="price-divider"></div>
+                <div className="price-row total">
+                  <span>Total Amount</span>
+                  <span>₹ {totalAmount.toLocaleString("en-IN")}</span>
+                </div>
+              </div>
 
-          {/* PRICE */}
-          <div className="checkout-card">
-            <h3>Price Breakdown</h3>
+              {orderId && (
+                <div className="order-info">
+                  <p className="order-id">Order ID: <strong>#{orderId}</strong></p>
+                  <p className="order-status">Status: <span className="badge-success">INITIATED</span></p>
+                </div>
+              )}
 
-            <div className="price-row">
-              <span>Ex-showroom</span>
-              <span>₹ {exPrice.toLocaleString("en-IN")}</span>
-            </div>
+              <button
+                className="btn-continue"
+                disabled={!orderId || processing}
+                onClick={handleContinue}
+              >
+                {processing ? "Processing..." : "Proceed to Payment"}
+              </button>
 
-            <div className="price-row">
-              <span>GST (28%)</span>
-              <span>₹ {gstAmount.toLocaleString("en-IN")}</span>
-            </div>
-
-            <div className="price-row">
-              <span>RTO</span>
-              <span>₹ {rtoAmount.toLocaleString("en-IN")}</span>
-            </div>
-
-            <div className="price-row">
-              <span>Insurance</span>
-              <span>
-                ₹ {insuranceAmount.toLocaleString("en-IN")}
-              </span>
-            </div>
-
-            <div className="price-total">
-              <span>Total</span>
-              <strong>₹ {totalAmount.toLocaleString("en-IN")}</strong>
+              <p className="secure-note">
+                🔒 Secure checkout · SSL encrypted
+              </p>
             </div>
           </div>
-
         </div>
-
-        {/* RIGHT */}
-        <div className="checkout-right">
-          <div className="checkout-card highlight">
-            <h3>Order Status</h3>
-
-            {orderId ? (
-              <>
-                <p>Order ID: <strong>#{orderId}</strong></p>
-                <p>Status: INITIATED</p>
-              </>
-            ) : (
-              <p>Creating order…</p>
-            )}
-
-            <button
-              className="btn-continue"
-              disabled={!orderId}
-              onClick={handleContinue}
-            >
-              Continue
-            </button>
-
-            <p className="secure-note">🔒 Secure Booking</p>
-          </div>
-        </div>
-
       </div>
 
       <Footer />
