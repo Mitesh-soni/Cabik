@@ -24,4 +24,14 @@ router.post("/login", async (req, res) => {
   }
 });
 
+// Get user by ID
+router.get("/:id", async (req, res) => {
+  try {
+    const result = await forwardRequest(`${USER_SERVICE}/users/${req.params.id}`, "GET");
+    res.json(result);
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
 export default router;

@@ -1,5 +1,11 @@
 import * as orderService from "../services/order.service.js";
 
+const parsePagination = (query) => ({
+  limit: Number(query.limit) || 50,
+  offset: Number(query.offset) || 0,
+  status: query.status || undefined
+});
+
 /* ============================
    CREATE ORDER (INITIATED)
 ============================ */
@@ -8,7 +14,6 @@ export const createOrder = async (req, res) => {
     const order = await orderService.createOrder(req.body);
     res.status(201).json(order);
   } catch (err) {
-    console.error(err);
     res.status(500).json({ message: "Failed to create order" });
   }
 };
@@ -24,7 +29,6 @@ export const addPriceBreakdown = async (req, res) => {
     );
     res.json(data);
   } catch (err) {
-    console.error(err);
     res.status(500).json({ message: "Failed to add price breakdown" });
   }
 };
@@ -37,7 +41,6 @@ export const confirmPrice = async (req, res) => {
     const order = await orderService.confirmPrice(req.params.orderId);
     res.json(order);
   } catch (err) {
-    console.error(err);
     res.status(500).json({ message: "Price confirmation failed" });
   }
 };
@@ -57,15 +60,9 @@ export const addEmiDetails = async (req, res) => {
       });
     }
 
-    console.log(`Saving EMI for order ${orderId}:`, { bank_name, monthly_emi, tenure_years });
-
     const data = await orderService.addEmiDetails(orderId, req.body);
-    
-    console.log(`EMI saved successfully for order ${orderId}`);
-    
     res.json(data);
   } catch (err) {
-    console.error(`Failed to save EMI for order ${req.params.orderId}:`, err);
     res.status(500).json({ message: "Failed to add EMI details" });
   }
 };
@@ -81,7 +78,6 @@ export const addInsuranceDetails = async (req, res) => {
     );
     res.json(data);
   } catch (err) {
-    console.error(err);
     res.status(500).json({ message: "Failed to add insurance details" });
   }
 };
@@ -97,13 +93,7 @@ export const payOrder = async (req, res) => {
       });
     }
 
-    // Log payment attempt for debugging
-    console.log(`Payment attempt - Order: ${orderId}, Method: ${payment_method}`);
-
     const result = await orderService.payOrder(orderId, req.body);
-
-    console.log(`Payment successful - Order: ${orderId}`);
-
     res.json({
       message: "Payment successful",
       order_id: orderId,
@@ -111,7 +101,6 @@ export const payOrder = async (req, res) => {
     });
   } catch (err) {
     const errorMessage = err.message || "Payment processing failed";
-    console.error("Payment error for order", req.params.orderId, ":", errorMessage);
     
     // Return appropriate status based on error type
     const status = errorMessage.includes("EMI details") ? 400 : 500;
@@ -137,7 +126,34 @@ export const getOrderById = async (req, res) => {
 
     res.json(order);
   } catch (err) {
-    console.error(err);
     res.status(500).json({ message: "Failed to fetch order" });
+  }
+};
+
+/* ============================
+   LIST ORDERS BY DEALER
+============================ */
+export const getOrdersByDealer = async (req, res) => {
+  try {
+    const { dealerId } = req.params;
+    const filters = parsePagination(req.query);
+    const orders = await orderService.getOrdersByDealer(dealerId, filters);
+    res.json(orders);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch dealer orders" });
+  }
+};
+
+/* ============================
+   LIST ORDERS BY USER
+============================ */
+export const getOrdersByUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const filters = parsePagination(req.query);
+    const orders = await orderService.getOrdersByUser(userId, filters);
+    res.json({ orders });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch user orders" });
   }
 };

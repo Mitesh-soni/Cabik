@@ -13,13 +13,13 @@ export const getInsurancePlans = async (vehicle_type) => {
       p.claim_settlement_ratio
     FROM insurance_plans ip
     JOIN insurance_providers p ON p.id = ip.provider_id
-    WHERE ip.vehicle_type = $1
+    WHERE LOWER(ip.vehicle_type) = LOWER($1)
       AND p.is_active = true
     `,
     [vehicle_type]
   );
 
-  // Attach addons
+  // Attach addons for DB-derived plans
   for (const plan of rows) {
     const { rows: addons } = await pool.query(
       `

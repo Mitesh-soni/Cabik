@@ -18,23 +18,38 @@ export default function UserHome() {
   const [searchQuery, setSearchQuery] = useState("");
   const [favorites, setFavorites] = useState([]);
   const [sortBy, setSortBy] = useState("popular");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(12);
+  const [totalCars, setTotalCars] = useState(0);
+  const [totalBikes, setTotalBikes] = useState(0);
+  const [totalScooties, setTotalScooties] = useState(0);
 
   useEffect(() => {
     loadVehicles();
-  }, []);
+  }, [currentPage, activeFilter]);
 
   const loadVehicles = async () => {
     setLoading(true);
     try {
+      const params = { 
+        page: currentPage, 
+        limit: itemsPerPage 
+      };
+
       const [resCars, resBikes, resScooties] = await Promise.all([
-        getCars(),
-        getBikes(),
-        getScooties()
+        getCars(params),
+        getBikes(params),
+        getScooties(params)
       ]);
 
       setCars(resCars?.data?.data || []);
       setBikes(resBikes?.data?.data || []);
       setScooties(resScooties?.data?.data || []);
+      
+      // Store total counts for pagination
+      setTotalCars(resCars?.data?.count || 0);
+      setTotalBikes(resBikes?.data?.count || 0);
+      setTotalScooties(resScooties?.data?.count || 0);
     } catch (error) {
       console.error("Error fetching vehicles:", error);
       setCars([]);
@@ -56,6 +71,11 @@ export default function UserHome() {
     setFavorites((prev) =>
       prev.includes(id) ? prev.filter((fav) => fav !== id) : [...prev, id]
     );
+  };
+
+  const handleFilterChange = (filter) => {
+    setActiveFilter(filter);
+    setCurrentPage(1); // Reset to page 1 when filter changes
   };
 
   const getFilteredVehicles = () => {
@@ -220,7 +240,7 @@ export default function UserHome() {
                   <button
                     key={filter}
                     className={`filter-btn ${activeFilter === filter ? "active" : ""}`}
-                    onClick={() => setActiveFilter(filter)}
+                    onClick={() => handleFilterChange(filter)}
                   >
                     {filter === "all"
                       ? "All"
@@ -285,6 +305,45 @@ export default function UserHome() {
                   type={vehicle.type}
                 />
               ))}
+            </div>
+
+            {/* PAGINATION CONTROLS */}
+            <div className="pagination-container">
+              <button
+                className="pagination-btn"
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+              >
+                ← Previous
+              </button>
+              
+              <div className="pagination-info">
+                <span className="page-number">Page {currentPage}</span>
+                <span className="page-separator">•</span>
+                <span className="total-items">
+                  {activeFilter === "all" 
+                    ? `${totalCars + totalBikes + totalScooties} total vehicles`
+                    : activeFilter === "cars"
+                    ? `${totalCars} cars`
+                    : activeFilter === "bikes"
+                    ? `${totalBikes} bikes`
+                    : `${totalScooties} scooties`
+                  }
+                </span>
+              </div>
+
+              <button
+                className="pagination-btn"
+                onClick={() => setCurrentPage(prev => prev + 1)}
+                disabled={
+                  (activeFilter === "all" && filteredVehicles.length < itemsPerPage) ||
+                  (activeFilter === "cars" && cars.length < itemsPerPage) ||
+                  (activeFilter === "bikes" && bikes.length < itemsPerPage) ||
+                  (activeFilter === "scooties" && scooties.length < itemsPerPage)
+                }
+              >
+                Next →
+              </button>
             </div>
           </section>
         ) : (

@@ -1,13 +1,5 @@
-import axios from "axios";
+import apiClient from "./client";
 
-const API = axios.create({
-  baseURL: "http://localhost:5000", // API Gateway
-});
+export const registerUser = (data) => apiClient.post("/users/register", data);
 
-// REGISTER USER
-export const registerUser = (data) =>
-  API.post("/users/register", data);
-
-// LOGIN USER
-export const loginUser = (data) =>
-  API.post("/users/login", data);
+export const loginUser = (data) => apiClient.post("/users/login", data);

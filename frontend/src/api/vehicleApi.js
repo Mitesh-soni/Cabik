@@ -1,14 +1,9 @@
-import axios from "axios";
+import apiClient from "./client";
 
-const API = "http://localhost:5000"; // your API Gateway
+export const getCars = (params = {}) => apiClient.get("/vehicles/cars", { params });
+export const getBikes = (params = {}) => apiClient.get("/vehicles/bikes", { params });
+export const getScooties = (params = {}) => apiClient.get("/vehicles/scooties", { params });
 
-export const getCars = () => axios.get(`${API}/vehicles/cars`);
-// console.log(getCars)
-export const getBikes = () => axios.get(`${API}/vehicles/bikes`);
-// console.log(getBikes);
-export const getScooties = () => axios.get(`${API}/vehicles/scooties`);
-// console.log(getScooties);
-
-export const getCarById = (id) => axios.get(`${API}/vehicles/cars/${id}`);
-export const getBikeById = (id) => axios.get(`${API}/vehicles/bikes/${id}`);
-export const getScootyById = (id) => axios.get(`${API}/vehicles/scooties/${id}`);
+export const getCarById = (id) => apiClient.get(`/vehicles/cars/${id}`);
+export const getBikeById = (id) => apiClient.get(`/vehicles/bikes/${id}`);
+export const getScootyById = (id) => apiClient.get(`/vehicles/scooties/${id}`);

@@ -1,16 +1,6 @@
-import axios from "axios";
+import apiClient from "./client";
 
-const API = axios.create({
-  baseURL: "http://localhost:5000",
-});
+export const emi = (data) => apiClient.post("/finance/emi", data);
 
-/* EMI */
-export const emi = (data) => {
-  return API.post("/finance/emi", data);
-};
-
-/* INSURANCE */
-export const insurance = (vehicle_type) => {
-  return API.get("/finance/insurance", {
-    params: { vehicle_type },
-  });}
+export const insurance = (vehicle_type) =>
+  apiClient.get("/finance/insurance", { params: { vehicle_type } });

@@ -14,3 +14,10 @@ app.use("/finance", financeRoutes);
 app.get("/health", (req, res) => {
   res.json({ status: "Integration Service Running" });
 });
+
+// Fallback error handler
+// Note: keep last to capture unhandled errors
+app.use((err, req, res, next) => {
+  console.error("UNHANDLED ERROR:", err);
+  res.status(500).json({ message: "Internal server error" });
+});

@@ -1,9 +1,4 @@
-import axios from "axios";
+import apiClient from "./client";
 
-const API = axios.create({
-  baseURL: import.meta.env.VITE_API_URL
-});
-
-export const payOrder = (orderId, data) => {
-  return API.post(`/orders/${orderId}/pay`, data);
-};
+export const payOrder = (orderId, data) =>
+  apiClient.post(`/orders/${orderId}/pay`, data);

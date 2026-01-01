@@ -5,6 +5,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
+    "start": "node src/server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start:all": "concurrently \"npm --prefix api-gateway start\" \"npm --prefix user-service start\" \"npm --prefix dealer-service start\" \"npm --prefix car-service start\" \"npm --prefix bike-service start\" \"npm --prefix scooty-service start\""
   },
@@ -16,7 +17,9 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
+    "form-data": "^4.0.5",
     "morgan": "^1.10.1",
+    "multer": "^2.0.2",
     "nodemon": "^3.1.11"
   }
 }

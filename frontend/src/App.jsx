@@ -10,6 +10,8 @@ import Checkout from "./pages/Checkout/Checkout.jsx";
 import Payment from "./pages/Payment/Payment.jsx";
 import OrderSuccess from "./pages/OrderSuccess/OrderSuccess.jsx";
 import Invoice from "./pages/Invoice/Invoice.jsx";
+import MyOrders from "./pages/MyOrders/MyOrders.jsx";
+import UserHome from "./pages/UserHome/userHome.jsx";
 
 // Auth Protection
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
@@ -17,7 +19,6 @@ import ProtectedRoute from "./components/ProtectedRoute.jsx";
 function App() {
   return (
     <Routes>
-
       {/* PUBLIC */}
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
@@ -71,6 +72,24 @@ function App() {
         element={
           <ProtectedRoute>
             <div>Dashboard Page</div>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/user-home"
+        element={
+          <ProtectedRoute>
+            <UserHome />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/my-orders"
+        element={
+          <ProtectedRoute>
+            <MyOrders />
           </ProtectedRoute>
         }
       />

@@ -1,5 +1,3 @@
-import axios from "axios";
+import apiClient from "./client";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
-
-export const getDealerById = (id) => axios.get(`${API}/dealer/${id}`);
+export const getDealerById = (id) => apiClient.get(`/dealer/${id}`);

@@ -108,6 +108,82 @@ export const confirmPrice = async (orderId) => {
 };
 
 /* ============================
+   GET ORDERS BY DEALER (RECENT FIRST)
+============================ */
+export const getOrdersByDealer = async (dealerId, { status, limit = 50, offset = 0 } = {}) => {
+  const values = [dealerId];
+  let whereClause = "dealer_id = $1";
+
+  if (status) {
+    values.push(status);
+    whereClause += ` AND order_status = $${values.length}`;
+  }
+
+  values.push(limit, offset);
+
+  const { rows } = await pool.query(
+    `
+    SELECT 
+      o.id,
+      o.user_id,
+      o.dealer_id,
+      o.vehicle_type,
+      o.vehicle_id,
+      o.base_price,
+      o.final_price,
+      o.order_status,
+      o.created_at
+    FROM orders o
+    WHERE ${whereClause}
+    ORDER BY o.created_at DESC
+    LIMIT $${values.length - 1}
+    OFFSET $${values.length}
+    `,
+    values
+  );
+
+  return rows;
+};
+
+/* ============================
+   GET ORDERS BY USER (RECENT FIRST)
+============================ */
+export const getOrdersByUser = async (userId, { status, limit = 50, offset = 0 } = {}) => {
+  const values = [userId];
+  let whereClause = "user_id = $1";
+
+  if (status) {
+    values.push(status);
+    whereClause += ` AND order_status = $${values.length}`;
+  }
+
+  values.push(limit, offset);
+
+  const { rows } = await pool.query(
+    `
+    SELECT 
+      o.id,
+      o.user_id,
+      o.dealer_id,
+      o.vehicle_type,
+      o.vehicle_id,
+      o.base_price,
+      o.final_price,
+      o.order_status,
+      o.created_at
+    FROM orders o
+    WHERE ${whereClause}
+    ORDER BY o.created_at DESC
+    LIMIT $${values.length - 1}
+    OFFSET $${values.length}
+    `,
+    values
+  );
+
+  return rows;
+};
+
+/* ============================
    EMI DETAILS (OPTIONAL)
 ============================ */
 export const addEmiDetails = async (orderId, data) => {

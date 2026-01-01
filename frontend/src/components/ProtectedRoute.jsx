@@ -4,7 +4,7 @@ import { AuthContext } from "../contexts/AuthContext.jsx";
 
 const ProtectedRoute = ({ children }) => {
   const { user } = useContext(AuthContext);
-  console.log("PROTECTED ROUTE USER =", user);
+  // Redirect unauthenticated users to login.
   if (!user) {
     return <Navigate to="/login" replace />;
   }

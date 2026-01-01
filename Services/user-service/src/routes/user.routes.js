@@ -1,9 +1,8 @@
 import express from "express";
-import { purchaseOrder } from "";
+import { getUserById } from "../controllers/user.controller.js";
 
 const router = express.Router();
 
-router.post("/purchaseOrder", purchaseOrder);
-router.post("/login", login);
+router.get("/:id", getUserById);
 
 export default router;

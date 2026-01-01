@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import morgan from "morgan";
 
-import vehiclesRoutes from "./routes/Vehicles.routes.js";
+import vehiclesRoutes from "./routes/vehicles.routes.js";
 
 const app = express();
 

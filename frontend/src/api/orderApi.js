@@ -1,53 +1,35 @@
-import axios from "axios";
-
-/* =========================
-   AXIOS INSTANCE
-========================= */
-const API = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000",
-  headers: {
-    "Content-Type": "application/json"
-  }
-});
+import apiClient from "./client";
 
 /* =========================
    CREATE ORDER
 ========================= */
-export const createOrder = (data) => {
-  return API.post("/orders", data);
-};
+export const createOrder = (data) => apiClient.post("/orders", data);
 
 /* =========================
    ADD PRICE BREAKDOWN
 ========================= */
-export const addPriceBreakup = (orderId, data) => {
-  return API.post(`/orders/${orderId}/price`, data);
-};
+export const addPriceBreakup = (orderId, data) =>
+  apiClient.post(`/orders/${orderId}/price`, data);
 
 /* =========================
    ADD EMI DETAILS
 ========================= */
-export const addEmiDetails = (orderId, data) => {
-  return API.post(`/orders/${orderId}/emi`, data);
-};
+export const addEmiDetails = (orderId, data) =>
+  apiClient.post(`/orders/${orderId}/emi`, data);
 
 /* =========================
    ADD INSURANCE DETAILS
 ========================= */
-export const addInsuranceDetails = (orderId, data) => {
-  return API.post(`/orders/${orderId}/insurance`, data);
-};
+export const addInsuranceDetails = (orderId, data) =>
+  apiClient.post(`/orders/${orderId}/insurance`, data);
 
 /* =========================
    GET ORDER BY ID
 ========================= */
-export const getOrderById = (orderId) => {
-  return API.get(`/orders/${orderId}`);
-};
+export const getOrderById = (orderId) => apiClient.get(`/orders/${orderId}`);
 
 /* =========================
    PAY ORDER
 ========================= */
-export const payOrder = (orderId, data) => {
-  return API.post(`/orders/${orderId}/pay`, data);
-};
+export const payOrder = (orderId, data) =>
+  apiClient.post(`/orders/${orderId}/pay`, data);

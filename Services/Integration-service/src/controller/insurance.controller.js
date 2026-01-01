@@ -8,7 +8,7 @@ export const fetchInsurancePlans = async (req, res) => {
       return res.status(400).json({ message: "vehicle_type required" });
     }
 
-    const plans = await getInsurancePlans(vehicle_type);
+    const plans = await getInsurancePlans(String(vehicle_type).toLowerCase());
     res.json({ insurance_plans: plans });
   } catch (err) {
     console.error("INSURANCE ERROR:", err);

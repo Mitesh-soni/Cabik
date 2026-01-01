@@ -6,8 +6,14 @@ export const register = async (req, res) => {
   try {
     const { full_name, email, phone, password } = req.body;
 
-    const exists = await pool.query("SELECT * FROM users WHERE email=$1", [
-      email,
+    if (!full_name || !email || !password) {
+      return res.status(400).json({ error: "full_name, email, and password are required" });
+    }
+
+    const normalizedEmail = email.toLowerCase();
+
+    const exists = await pool.query("SELECT 1 FROM users WHERE email=$1", [
+      normalizedEmail,
     ]);
     if (exists.rows.length > 0)
       return res.status(400).json({ error: "Email already exists" });
@@ -16,10 +22,10 @@ export const register = async (req, res) => {
 
     await pool.query(
       "INSERT INTO users(full_name, email, phone, password_hash) VALUES($1,$2,$3,$4)",
-      [full_name, email, phone, password_hash]
+      [full_name, normalizedEmail, phone, password_hash]
     );
 
-    res.json({ success: true, message: "User registered" });
+    res.status(201).json({ success: true, message: "User registered" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -29,9 +35,15 @@ export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    if (!email || !password) {
+      return res.status(400).json({ error: "email and password are required" });
+    }
+
+    const normalizedEmail = email.toLowerCase();
+
     const result = await pool.query(
       "SELECT id, full_name, email, password_hash FROM users WHERE email=$1",
-      [email]
+      [normalizedEmail]
     );
 
     if (result.rows.length === 0) {
@@ -45,14 +57,12 @@ export const login = async (req, res) => {
       return res.status(400).json({ error: "Incorrect password" });
     }
 
-    // 🔐 Token payload
     const token = generateToken({
       id: user.id,
       email: user.email,
       username: user.full_name
     });
 
-    // ✅ SEND USER + TOKEN
     res.json({
       success: true,
       token,
